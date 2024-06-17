@@ -3,11 +3,13 @@ import { useParams } from 'react-router';
 import { Job } from '@blocksuite/store';
 import { DownloadIcon, ZipTransformer } from '@blocksuite/blocks';
 import { SaveIcon } from 'lucide-react';
-
+import { debounce } from 'lodash';
 import BlockSuite from '../blockSuite';
 import { configuration } from '../blockSuite/editor/globalDoc';
 import ApiService from '../../../../services/ApiService';
+import { useEditor } from '../blockSuite/editor/context';
 import { StyledToolbar } from './styles';
+import { number } from 'yup';
 
 const NewNote = () => {
   const colors = {
@@ -18,20 +20,22 @@ const NewNote = () => {
   const [savingState, setSavingState] = useState('');
   const [color, setColor] = useState(colors.info);
   const params = useParams();
-  const pdfRef = useRef();
   const [noteId, setNoteId] = useState(params.id || null);
+  const [makeTimer, setMakeTimer] = useState("");
+  const pdfRef = useRef();
 
-  const saveNote = useCallback(async () => {
+  //last status....
+
+  const saveNoteFunc = async () => {
     if (savingState === 'Saving note...' || savingState === 'Downloading...')
       return;
 
     try {
-      setColor(colors.info);
-      setSavingState('Saving note...');
       const { collection } = configuration;
       const job = new Job({ collection });
-      const json = await job.docToSnapshot(configuration.doc);
-      const title = json.meta.title || 'Enter Note Title';
+      // const json = await job.docToSnapshot(configuration.doc);
+      // const title = json.meta.title || 'Enter Note Title';
+      const title = document.querySelectorAll("v-text")[0].innerText;
       let summary = document.querySelector('affine-note').innerText;
       if (summary.length > 252) summary = `${summary.slice(0, 50)}...`;
       const docMetaTags = document
@@ -49,7 +53,6 @@ const NewNote = () => {
       for (let i = 0; i < bytes.length; i++) {
         binary += String.fromCharCode(bytes[i]);
       }
-
       const note = btoa(binary);
       const data = {
         topic: title,
@@ -57,14 +60,23 @@ const NewNote = () => {
         note: note,
         summary: summary
       };
+      console.log(makeTimer);
+      if(makeTimer === "" ) return;
 
+      setColor(colors.info);
+      setSavingState('Saving note...');
+      
       if (noteId) {
-        await ApiService.updateNote(noteId, data);
+        const res = await ApiService.updateNote(noteId, data);
         setSavingState('Saved successfully!');
         setColor(colors.success);
       } else {
-        const response = await ApiService.createNote(data);
-        // setNoteId(response.id);
+        const response : any = await ApiService.createNote(data);
+        
+        if(response) {
+          const res = await response.json();
+          setNoteId(res.data.id);
+        }
         setSavingState('Saved successfully!');
         setColor(colors.success);
       }
@@ -72,7 +84,25 @@ const NewNote = () => {
       setSavingState(`Something went wrong while saving. ${e}`);
       setColor(colors.danger);
     }
-  }, [savingState, noteId]);
+  }
+
+  const saveNote = useCallback(saveNoteFunc, [savingState, noteId]);
+
+  useEffect(()=> {
+    const func = debounce(saveNoteFunc, 2000);
+    func();
+    return ()=>{
+      func.cancel();
+    }
+  },[makeTimer])
+  
+  useEffect(() => {
+    // event for escape to minimize window
+    window.addEventListener('keydown', (e) => {
+      setMakeTimer("" + Math.random());
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const intervalId = setInterval(() => {

@@ -3,7 +3,7 @@ import { useEditor } from '../editor/context';
 import { AIStarIcon, AffineSlashMenuWidget } from '@blocksuite/blocks';
 
 const EditorContainer = ({ setState, state, askAI, setPosition, setModel }) => {
-  const { editor } = useEditor()!;
+  const { editor } = useEditor();
 
   const widget = new AffineSlashMenuWidget();
 
@@ -47,6 +47,7 @@ const EditorContainer = ({ setState, state, askAI, setPosition, setModel }) => {
       editorContainerRef.current.appendChild(editor);
     }
   }, []);
+
 
   return <div className="editor-container" ref={editorContainerRef}></div>;
 };
