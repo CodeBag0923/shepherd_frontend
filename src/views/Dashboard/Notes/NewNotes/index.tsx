@@ -24,8 +24,6 @@ const NewNote = () => {
   const [makeTimer, setMakeTimer] = useState("");
   const pdfRef = useRef();
 
-  //last status....
-
   const saveNoteFunc = async () => {
     if (savingState === 'Saving note...' || savingState === 'Downloading...')
       return;
@@ -60,7 +58,6 @@ const NewNote = () => {
         note: note,
         summary: summary
       };
-      console.log(makeTimer);
       if(makeTimer === "" ) return;
 
       setColor(colors.info);
